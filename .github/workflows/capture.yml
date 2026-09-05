@@ -1,0 +1,109 @@
+name: Capture command outputs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ARCH: amd64
+  KIND_VERSION: v0.27.0
+  KUBECTL_VERSION: v1.32.2
+  HELM_VERSION: v3.21.4
+  CILIUM_CLI_VERSION: v0.20.0
+
+jobs:
+  cilium:
+    name: Capture outputs (cilium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          curl -fLo "$HOME/.local/bin/kind" \
+            "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH}"
+          chmod +x "$HOME/.local/bin/kind"
+
+          curl -fLo "$HOME/.local/bin/kubectl" \
+            "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+          chmod +x "$HOME/.local/bin/kubectl"
+
+          curl -fLo /tmp/helm.tar.gz \
+            "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz"
+          tar -xzf /tmp/helm.tar.gz -C /tmp
+          install -m 0755 "/tmp/linux-${ARCH}/helm" "$HOME/.local/bin/helm"
+
+          curl -fLo /tmp/cilium.tar.gz \
+            "https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${ARCH}.tar.gz"
+          tar -xzf /tmp/cilium.tar.gz -C "$HOME/.local/bin"
+
+      - name: Verify tool versions
+        run: |
+          kind --version
+          kubectl version --client
+          helm version --short
+          cilium version --client
+
+      - name: Create cluster
+        run: ./scripts/setup-cilium.sh
+
+      - name: Wait for pods
+        run: |
+          kubectl wait --for=condition=Ready pod -l app=echo --timeout=120s
+          kubectl wait --for=condition=Ready pod/client --timeout=60s
+
+      - name: Capture outputs
+        run: ./tests/capture-cilium.sh
+
+      - name: Capture LB map growth vs replicas
+        run: ./tests/scale-cilium.sh
+
+      - name: Capture debug walkthrough
+        run: ./tests/debug-cilium.sh
+
+  kubeproxy:
+    name: Capture outputs (kube-proxy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          curl -fLo "$HOME/.local/bin/kind" \
+            "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH}"
+          chmod +x "$HOME/.local/bin/kind"
+
+          curl -fLo "$HOME/.local/bin/kubectl" \
+            "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+          chmod +x "$HOME/.local/bin/kubectl"
+
+      - name: Verify tool versions
+        run: |
+          kind --version
+          kubectl version --client
+
+      - name: Create cluster
+        run: ./scripts/setup-kubeproxy.sh
+
+      - name: Wait for pods
+        run: |
+          kubectl wait --for=condition=Ready pod -l app=echo --timeout=120s
+          kubectl wait --for=condition=Ready pod/client --timeout=60s
+
+      - name: Capture outputs
+        run: ./tests/capture-kubeproxy.sh
+
+      - name: Capture iptables growth vs replicas
+        run: ./tests/scale-kubeproxy.sh
+
+      - name: Capture debug walkthrough
+        run: ./tests/debug-kubeproxy.sh

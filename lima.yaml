@@ -1,0 +1,59 @@
+vmType: vz
+os: Linux
+arch: aarch64
+cpus: 4
+memory: 8GiB
+disk: 40GiB
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: aarch64
+
+mounts:
+  - location: "~"
+    writable: true
+  - location: "/tmp/lima"
+    writable: true
+
+containerd:
+  system: false
+  user: false
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux
+
+      ARCH=arm64
+      KIND_VERSION=v0.27.0
+      KUBECTL_VERSION=v1.32.2
+      HELM_VERSION=v3.21.4
+      CILIUM_CLI_VERSION=v0.20.0
+
+      apt-get update
+      apt-get install -y docker.io iptables conntrack curl
+
+      systemctl enable docker
+      systemctl start docker
+
+      LIMA_USER=$(awk -F: '$3>=500 && $3<60000 && $7 !~ /(nologin|false)$/ {print $1}' /etc/passwd | head -1)
+      [ -n "$LIMA_USER" ] || { echo "cannot determine lima user" >&2; exit 1; }
+      usermod -aG docker "$LIMA_USER"
+
+      curl -fLo /usr/local/bin/kind \
+        "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH}"
+      chmod +x /usr/local/bin/kind
+
+      curl -fLo /usr/local/bin/kubectl \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+      chmod +x /usr/local/bin/kubectl
+
+      curl -fLo /tmp/helm.tar.gz \
+        "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz"
+      tar -xzf /tmp/helm.tar.gz -C /tmp
+      install -m 0755 "/tmp/linux-${ARCH}/helm" /usr/local/bin/helm
+
+      curl -fLo /tmp/cilium.tar.gz \
+        "https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${ARCH}.tar.gz"
+      tar -xzf /tmp/cilium.tar.gz -C /usr/local/bin
