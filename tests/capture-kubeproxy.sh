@@ -50,6 +50,18 @@ section "ClusterIP connectivity from client pod"
 kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- \
   curl -s --max-time 5 "http://${SERVICE_IP}/" | python3 -m json.tool 2>/dev/null || true
 
+section "tcpdump on node targeting ClusterIP (expect: packets visible before DNAT)"
+echo "ClusterIP: ${SERVICE_IP}"
+docker exec "$NODE" sh -c 'command -v tcpdump || (apt-get update -qq && apt-get install -y -qq tcpdump)' > /dev/null 2>&1
+echo "Sending traffic from client pod while tcpdump listens on node..."
+docker exec "$NODE" \
+  timeout 8 tcpdump -n -i any "host ${SERVICE_IP}" 2>&1 &
+TCPDUMP_PID=$!
+sleep 2
+kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- curl -s --max-time 5 "http://${SERVICE_IP}/" > /dev/null
+echo "(request sent)"
+wait $TCPDUMP_PID || true
+
 section "conntrack -L (ClusterIP and its DNAT target in one row)"
 kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- \
   curl -s --max-time 5 "http://${SERVICE_IP}/" > /dev/null
