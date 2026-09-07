@@ -28,6 +28,9 @@ kubectl -n kube-system exec ds/cilium -- \
 section "iptables-save | grep KUBE-SERVICES (expect: empty)"
 docker exec "$NODE" iptables-save 2>/dev/null | grep "KUBE-SERVICES" || echo "(no KUBE-SERVICES rules)"
 
+section "kubectl get svc echo"
+kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE"
+
 section "cilium service list"
 kubectl -n kube-system exec ds/cilium -- cilium-dbg service list
 
