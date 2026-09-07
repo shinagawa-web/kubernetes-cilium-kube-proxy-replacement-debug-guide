@@ -33,14 +33,14 @@ agent() {
 }
 
 NODE=$(kubectl get pod "$CLIENT_POD" -n "$NAMESPACE" -o jsonpath='{.spec.nodeName}')
-SERVICE_IP=$(kubectl get svc echo -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+SERVICE_IP=$(kubectl get svc demo -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 
 kubectl apply -f "$BROKEN_DIR/svc-wrong-selector.yaml" >/dev/null
 sleep 3
-BROKEN_IP=$(kubectl get svc echo-broken -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+BROKEN_IP=$(kubectl get svc demo-broken -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 
-section "case A - symptom: echo-broken never answers"
-echo "echo-broken ClusterIP : ${BROKEN_IP}"
+section "case A - symptom: demo-broken never answers"
+echo "demo-broken ClusterIP : ${BROKEN_IP}"
 echo "curl from ${CLIENT_POD}     : HTTP $(probe "$BROKEN_IP")"
 
 section "case A - the old habit returns nothing"
@@ -48,7 +48,7 @@ docker exec "$NODE" iptables-save -t nat | grep "$BROKEN_IP" \
   || echo "(no nat rule - Cilium does not use netfilter for Services)"
 
 section "case A - step 1: does the Service have endpoints?"
-kubectl get endpoints echo-broken -n "$NAMESPACE"
+kubectl get endpoints demo-broken -n "$NAMESPACE"
 
 section "case A - step 2: how Cilium sees both Services"
 agent cilium-dbg service list 2>/dev/null \
@@ -62,27 +62,27 @@ agent cilium-dbg bpf lb list 2>/dev/null | grep "${BROKEN_IP}:" | sed 's/^/    /
   || echo "    (no backend slots)"
 
 section "case A - root cause: the selector matches no pod"
-echo "echo-broken selector : $(kubectl get svc echo-broken -n "$NAMESPACE" -o jsonpath='{.spec.selector}')"
-kubectl get pod -n "$NAMESPACE" -l app=echo \
+echo "demo-broken selector : $(kubectl get svc demo-broken -n "$NAMESPACE" -o jsonpath='{.spec.selector}')"
+kubectl get pod -n "$NAMESPACE" -l app=demo \
   -o jsonpath='{range .items[*]}    {.metadata.name}  {.metadata.labels}{"\n"}{end}'
 
 kubectl delete -f "$BROKEN_DIR/svc-wrong-selector.yaml" >/dev/null 2>&1
 kubectl apply -f "$BROKEN_DIR/netpol-deny.yaml" >/dev/null
 sleep 4
 
-section "case B - symptom: echo fails too, same HTTP 000"
-echo "echo ClusterIP : ${SERVICE_IP}"
+section "case B - symptom: demo fails too, same HTTP 000"
+echo "demo ClusterIP : ${SERVICE_IP}"
 echo "curl from ${CLIENT_POD} : HTTP $(probe "$SERVICE_IP")"
 
 section "case B - step 1: endpoints are healthy this time"
-kubectl get endpoints echo -n "$NAMESPACE"
+kubectl get endpoints demo -n "$NAMESPACE"
 
 section "case B - step 2: Cilium has active backends - not a load balancing problem"
 agent cilium-dbg service list 2>/dev/null | grep -E "^ID|${SERVICE_IP}" || true
 
 section "case B - step 3: hubble names the verdict"
 probe "$SERVICE_IP" >/dev/null
-DROPS=$(agent hubble observe --verdict DROPPED --last 20 2>&1 | grep -E "client|echo" || true)
+DROPS=$(agent hubble observe --verdict DROPPED --last 20 2>&1 | grep -E "client|demo" || true)
 if [ -n "$DROPS" ]; then
   head -6 <<<"$DROPS"
 else

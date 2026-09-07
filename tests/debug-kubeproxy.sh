@@ -29,19 +29,19 @@ probe() {
 }
 
 NODE=$(kubectl get pod "$CLIENT_POD" -n "$NAMESPACE" -o jsonpath='{.spec.nodeName}')
-SERVICE_IP=$(kubectl get svc echo -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+SERVICE_IP=$(kubectl get svc demo -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 
 kubectl apply -f "$BROKEN_SVC" >/dev/null
 sleep 3
-BROKEN_IP=$(kubectl get svc echo-broken -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+BROKEN_IP=$(kubectl get svc demo-broken -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 
-section "symptom: echo-broken never answers"
-echo "echo-broken ClusterIP : ${BROKEN_IP}"
+section "symptom: demo-broken never answers"
+echo "demo-broken ClusterIP : ${BROKEN_IP}"
 echo "curl from ${CLIENT_POD}     : HTTP $(probe "$BROKEN_IP")"
-echo "echo (working) ${SERVICE_IP} : HTTP $(probe "$SERVICE_IP")"
+echo "demo (working) ${SERVICE_IP} : HTTP $(probe "$SERVICE_IP")"
 
 section "step 1: does the Service have endpoints?"
-kubectl get endpoints echo-broken -n "$NAMESPACE"
+kubectl get endpoints demo-broken -n "$NAMESPACE"
 
 section "step 2: nat table - where a working Service appears"
 echo "working Service ${SERVICE_IP}:"
@@ -56,7 +56,7 @@ docker exec "$NODE" iptables-save -t filter | grep "$BROKEN_IP" | sed 's/^/    /
   || echo "    (no filter rule for ${BROKEN_IP})"
 
 section "root cause: the selector matches no pod"
-echo "echo-broken selector : $(kubectl get svc echo-broken -n "$NAMESPACE" -o jsonpath='{.spec.selector}')"
-echo "labels on echo pods  :"
-kubectl get pod -n "$NAMESPACE" -l app=echo \
+echo "demo-broken selector : $(kubectl get svc demo-broken -n "$NAMESPACE" -o jsonpath='{.spec.selector}')"
+echo "labels on demo pods  :"
+kubectl get pod -n "$NAMESPACE" -l app=demo \
   -o jsonpath='{range .items[*]}    {.metadata.name}  {.metadata.labels}{"\n"}{end}'

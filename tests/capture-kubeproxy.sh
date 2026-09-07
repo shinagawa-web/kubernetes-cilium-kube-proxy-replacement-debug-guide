@@ -8,7 +8,7 @@ use_cluster kubeproxy-debug
 
 NAMESPACE=default
 CLIENT_POD=client
-SERVICE_NAME=echo
+SERVICE_NAME=demo
 SERVICE_IP=$(kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
 

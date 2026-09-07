@@ -8,7 +8,7 @@ use_cluster cilium-debug
 
 NAMESPACE=default
 CLIENT_POD=client
-SERVICE_NAME=echo
+SERVICE_NAME=demo
 SERVICE_IP=$(kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 NODE=$(kubectl get pod "$CLIENT_POD" -o jsonpath='{.spec.nodeName}')
 
@@ -28,7 +28,7 @@ kubectl -n kube-system exec ds/cilium -- \
 section "iptables-save | grep KUBE-SERVICES (expect: empty)"
 docker exec "$NODE" iptables-save 2>/dev/null | grep "KUBE-SERVICES" || echo "(no KUBE-SERVICES rules)"
 
-section "kubectl get svc echo"
+section "kubectl get svc demo"
 kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE"
 
 section "cilium service list"
@@ -54,7 +54,7 @@ echo "(request sent)"
 wait $TCPDUMP_PID || true
 
 section "NodePort on the wire (expect: packets, unlike ClusterIP)"
-NODEPORT=$(kubectl get svc echo-nodeport -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
+NODEPORT=$(kubectl get svc demo-nodeport -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
 NODE_IP=$(kubectl get node "$NODE" -o jsonpath='{.status.addresses[0].address}')
 echo "NodePort: ${NODE_IP}:${NODEPORT}"
 docker exec "$NODE" \
@@ -75,7 +75,7 @@ kubectl -n kube-system exec ds/cilium -c cilium-agent -- \
 
 section "hubble observe (ClusterIP translation visible)"
 kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- curl -s --max-time 5 "http://${SERVICE_IP}/" > /dev/null
-kubectl -n kube-system exec ds/cilium -- hubble observe --last 30 2>&1 | grep -E "client|echo"
+kubectl -n kube-system exec ds/cilium -- hubble observe --last 30 2>&1 | grep -E "client|demo"
 
 section "cilium monitor (drop events while sending traffic)"
 kubectl -n kube-system exec ds/cilium -- cilium-dbg monitor --type drop &

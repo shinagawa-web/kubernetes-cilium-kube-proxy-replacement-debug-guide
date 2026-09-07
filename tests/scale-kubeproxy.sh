@@ -7,8 +7,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../scripts/lib/use-cluster.sh"
 use_cluster kubeproxy-debug
 
 NAMESPACE=default
-DEPLOY=echo
-SERVICE_NAME=echo
+DEPLOY=demo
+SERVICE_NAME=demo
 REPLICAS_STEPS="${REPLICAS_STEPS:-1 2 4 8 16}"
 SERVICE_IP=$(kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
 NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')

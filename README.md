@@ -42,7 +42,7 @@ manifests/
   demo.yaml                  # echo server Deployment, ClusterIP Service, NodePort Service, client Pod
   broken/
     svc-wrong-selector.yaml  # Service whose selector matches no pod
-    netpol-deny.yaml         # NetworkPolicy denying client -> echo
+    netpol-deny.yaml         # NetworkPolicy denying client -> demo
 scripts/
   setup-cilium.sh            # create cilium-debug cluster
   setup-kubeproxy.sh         # create kubeproxy-debug cluster

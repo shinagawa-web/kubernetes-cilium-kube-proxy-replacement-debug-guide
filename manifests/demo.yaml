@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echo
+  name: demo
   namespace: default
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: echo
+      app: demo
   template:
     metadata:
       labels:
-        app: echo
+        app: demo
     spec:
       containers:
-        - name: echo
+        - name: demo
           image: ealen/echo-server:0.9.2
           ports:
             - containerPort: 80
@@ -25,11 +25,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: echo
+  name: demo
   namespace: default
 spec:
   selector:
-    app: echo
+    app: demo
   ports:
     - port: 80
       targetPort: 80
@@ -38,11 +38,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: echo-nodeport
+  name: demo-nodeport
   namespace: default
 spec:
   selector:
-    app: echo
+    app: demo
   ports:
     - port: 80
       targetPort: 80
