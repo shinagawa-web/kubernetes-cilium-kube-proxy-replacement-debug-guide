@@ -37,14 +37,14 @@ kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE"
 section "cilium service list"
 kubectl -n kube-system exec ds/cilium -- cilium-dbg service list
 
-section "cilium service list (json: id / frontend / type / namespace/name / backend-count)"
+section "cilium service list (json: id / frontend / type / namespace/name / backends)"
 kubectl -n kube-system exec ds/cilium -- cilium-dbg service list -o json \
 | jq -r '.[] | [
     (.spec.id | tostring),
     (.spec["frontend-address"].ip + ":" + (.spec["frontend-address"].port | tostring)),
     .spec.flags.type,
     (.spec.flags.namespace + "/" + .spec.flags.name),
-    (.spec["backend-addresses"] | length | tostring)
+    (.spec["backend-addresses"] // [] | map(.ip + ":" + (.port | tostring)) | join(" "))
   ] | @tsv' | column -t
 
 section "cilium bpf lb list"
