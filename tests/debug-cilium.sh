@@ -50,9 +50,18 @@ docker exec "$NODE" iptables-save -t nat | grep "$BROKEN_IP" \
 section "case A - step 1: does the Service have endpoints?"
 kubectl get endpoints demo-broken -n "$NAMESPACE"
 
-section "case A - step 2: how Cilium sees both Services"
-agent cilium-dbg service list 2>/dev/null \
-  | grep -E "^ID|${BROKEN_IP}|${SERVICE_IP}" || true
+section "case A - step 2: how Cilium sees both Services (name + backend count)"
+agent cilium-dbg service list -o json 2>/dev/null \
+| jq -r '.[] | select(
+    (.spec["frontend-address"].ip == "'"${BROKEN_IP}"'") or
+    (.spec["frontend-address"].ip == "'"${SERVICE_IP}"'")
+  ) | [
+    (.spec.id | tostring),
+    (.spec["frontend-address"].ip + ":" + (.spec["frontend-address"].port | tostring)),
+    .spec.flags.type,
+    (.spec.flags.namespace + "/" + .spec.flags.name),
+    (.spec["backend-addresses"] | length | tostring)
+  ] | @tsv' | column -t || true
 
 section "case A - step 3: backend slots in the LB map"
 echo "working Service ${SERVICE_IP}:"
@@ -78,7 +87,14 @@ section "case B - step 1: endpoints are healthy this time"
 kubectl get endpoints demo -n "$NAMESPACE"
 
 section "case B - step 2: Cilium has active backends - not a load balancing problem"
-agent cilium-dbg service list 2>/dev/null | grep -E "^ID|${SERVICE_IP}" || true
+agent cilium-dbg service list -o json 2>/dev/null \
+| jq -r '.[] | select(.spec["frontend-address"].ip == "'"${SERVICE_IP}"'") | [
+    (.spec.id | tostring),
+    (.spec["frontend-address"].ip + ":" + (.spec["frontend-address"].port | tostring)),
+    .spec.flags.type,
+    (.spec.flags.namespace + "/" + .spec.flags.name),
+    (.spec["backend-addresses"] | length | tostring)
+  ] | @tsv' | column -t || true
 
 section "case B - step 3: hubble names the verdict"
 probe "$SERVICE_IP" >/dev/null
