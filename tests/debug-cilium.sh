@@ -24,7 +24,7 @@ section() {
 probe() {
   local code
   code=$(kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- \
-    curl -s --max-time 5 -o /dev/null -w '%{http_code}' "http://$1/" 2>/dev/null) || true
+    curl -s --max-time 5 -o /dev/null -w '%{http_code} (%{time_total}s)' "http://$1/" 2>/dev/null) || true
   echo "${code:-000}"
 }
 
