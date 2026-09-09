@@ -87,7 +87,7 @@ kubectl -n kube-system exec ds/cilium -c cilium-agent -- \
 
 section "hubble observe (ClusterIP translation visible)"
 kubectl exec -n "$NAMESPACE" "$CLIENT_POD" -- curl -s --max-time 5 "http://${SERVICE_IP}/" > /dev/null
-kubectl -n kube-system exec ds/cilium -- hubble observe --last 30 2>&1 | grep -E "client|demo"
+kubectl -n kube-system exec ds/cilium -- hubble observe --last 30 | grep -E "client|demo"
 
 section "cilium monitor (drop events while sending traffic)"
 kubectl -n kube-system exec ds/cilium -- cilium-dbg monitor --type drop &

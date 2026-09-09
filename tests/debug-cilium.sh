@@ -98,7 +98,7 @@ agent cilium-dbg service list -o json 2>/dev/null \
 
 section "case B - step 3: hubble names the verdict"
 probe "$SERVICE_IP" >/dev/null
-DROPS=$(agent hubble observe --verdict DROPPED --last 20 2>&1 | grep -E "client|demo" || true)
+DROPS=$(agent hubble observe --verdict DROPPED --last 20 | grep -E "client|demo" || true)
 if [ -n "$DROPS" ]; then
   head -6 <<<"$DROPS"
 else
