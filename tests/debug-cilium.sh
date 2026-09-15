@@ -96,6 +96,10 @@ agent cilium-dbg service list -o json 2>/dev/null \
     (.spec["backend-addresses"] | length | tostring)
   ] | @tsv' | column -t || true
 
+section "case B - step 2b: bpf lb list confirms the agent view"
+echo "demo ${SERVICE_IP} - eBPF map:"
+agent cilium-dbg bpf lb list 2>/dev/null | grep "${SERVICE_IP}:" | sed 's/^/    /' || true
+
 section "case B - step 3: hubble names the verdict"
 probe "$SERVICE_IP" >/dev/null
 DROPS=$(agent hubble observe --verdict DROPPED --last 20 | grep -E "client|demo" || true)
