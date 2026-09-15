@@ -1,6 +1,12 @@
 # kubernetes-cilium-kube-proxy-replacement-debug-guide
 
-Sample repository for the article: **"iptables Returns Nothing After Migrating to Cilium — What to Use Instead"**
+## Article and CI jobs
+
+| Article | CI jobs |
+|:---|:---|
+| [Kubernetes: iptables is empty after migrating to Cilium — what to look at next](https://dev.to/shinagawa-web/kubernetes-iptables-is-empty-after-migrating-to-cilium-what-to-look-at-next-2knn) | [capture-cilium](https://github.com/shinagawa-web/kubernetes-cilium-kube-proxy-replacement-debug-guide/actions/runs/34095095725/job/101656873084) · [capture-kubeproxy](https://github.com/shinagawa-web/kubernetes-cilium-kube-proxy-replacement-debug-guide/actions/runs/34095095725/job/101656873263) · [debug-cilium](https://github.com/shinagawa-web/kubernetes-cilium-kube-proxy-replacement-debug-guide/actions/runs/34327279232/job/102387334234) |
+
+Sample repository for the article.
 
 Provides two kind clusters side by side:
 
